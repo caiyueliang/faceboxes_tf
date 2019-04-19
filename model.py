@@ -254,16 +254,21 @@ class FaceBox(object):
         self.loss = self.compute_loss(self.out_locs, self.out_confs, self.target_locs, self.target_confs)
         self.loss += tf.losses.get_regularization_loss()                # Add regularisation
         tf.summary.scalar('Loss', self.loss)
+
+        # ==================================================================================
         self.extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(self.extra_update_ops):
             self.train = tf.train.AdamOptimizer(self.lr, epsilon=0.1).minimize(self.loss)
-            # TODO
-            # self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            # self.train_op = tf.group(self.train, self.update_ops)
+            self.train = tf.train.MomentumOptimizer(self.lr, momentum=0.9, use_nesterov=True).minimize(self.loss)
 
-            # self.train = tf.train.MomentumOptimizer(self.lr, momentum = 0.9, use_nesterov = True).minimize(self.loss)
+        # ==================================================================================
+        # TODO
+        optimizer = tf.train.AdamOptimizer(self.lr, epsilon=0.1)
+        minimize_op = optimizer.minimize(self.loss)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        self.train_op = tf.group(minimize_op, update_ops)
+
         self.merged = tf.summary.merge_all()
-
         # optimizer = get_optimizer(args.optim_name, lr)
         # minimize_op = optimizer.minimize(loss, global_step=global_step)
         # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -323,13 +328,17 @@ class FaceBox(object):
             self.target_locs: locs,
             self.target_confs: confs
         }
+
+        # ==================================================================================
         pred_confs, pred_locs, summary, _, loss, _, iter = self.sess.run(
             fetches=[self.p_confs, self.out_locs, self.merged, self.train, self.loss, self.i_plus, self.global_iter_val],
             feed_dict=feed_dict)
+        # ==================================================================================
         # TODO
-        # pred_confs, pred_locs, summary, _, loss, _, iter = self.sess.run(
-        #     fetches=[self.p_confs, self.out_locs, self.merged, self.train_op, self.loss, self.i_plus, self.global_iter_val],
-        #     feed_dict=feed_dict)
+        pred_confs, pred_locs, summary, _, loss, _, iter = self.sess.run(
+            fetches=[self.p_confs, self.out_locs, self.merged, self.train_op, self.loss, self.i_plus, self.global_iter_val],
+            feed_dict=feed_dict)
+
         pred_boxes = anchors.decode_batch(anchors_vec, pred_locs, pred_confs)
         mAP = anchors.compute_mAP(imgs, lbls, pred_boxes, normalised=self.normalised)
         print('Iter:', iter[0], 'LR:', iter[1], 'Loss:', loss, 'mAP:', mAP, 'Max:', np.max(pred_locs), 'Min:', np.min(pred_locs))
