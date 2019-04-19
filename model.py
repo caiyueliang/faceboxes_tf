@@ -116,16 +116,16 @@ class FaceBox(object):
 
     def build_graph(self):
         # Process inputs
-        self.inputs =  tf.placeholder(tf.float32, shape = (self.batch_size, self.input_shape[1], self.input_shape[2], self.input_shape[3]), name = "inputs")
-        self.inputs = self.inputs/255.0 # Normalise to 0-1
-        self.inputs = 2.0*self.inputs - 1.0 # Makes the same as InceptionNet
-        self.is_training = tf.placeholder(tf.bool, name = "is_training")
+        self.inputs = tf.placeholder(tf.float32, shape=(self.batch_size, self.input_shape[1], self.input_shape[2], self.input_shape[3]), name="inputs")
+        self.inputs = self.inputs / 255.0           # Normalise to 0-1
+        self.inputs = 2.0 * self.inputs - 1.0       # Makes the same as InceptionNet
+        self.is_training = tf.placeholder(tf.bool, name="is_training")
         global_step = tf.Variable(0, trainable=False)
-        self.i_plus  = tf.assign(global_step, global_step+1)
+        self.i_plus = tf.assign(global_step, global_step+1)
 
         boundaries = [200000.0, 400000.0]
         values = [0.001, 0.0001, 0.00001]
-        self.lr = tf.train.piecewise_constant(tf.to_float(global_step), boundaries, values, name = 'lr_select')
+        self.lr = tf.train.piecewise_constant(tf.to_float(global_step), boundaries, values, name='lr_select')
         self.global_iter_val = [global_step, self.lr]
 
         DEBUG = True

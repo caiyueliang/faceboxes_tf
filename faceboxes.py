@@ -34,13 +34,14 @@ def get_nb_params_shape(shape):
         nb_params = nb_params*int(dim)
     return nb_params
 
+
 if __name__ == '__main__':
     multiprocessing.set_start_method('spawn')
     np.set_printoptions(suppress=True)
     data_train_source = './wider_train.p'
     data_test_source = './wider_test.p'
-    data_train_dir = '../WIDER/train_images/'
-    data_test_dir = '../WIDER/test_images/'
+    data_train_dir = '../Data/WIDER/WIDER_train/'
+    data_test_dir = '../Data/WIDER/WIDER_val/'
     save_f = './models/'
     model_name = 'facebox'
     PRINT_FREQ = 500

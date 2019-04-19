@@ -4,8 +4,8 @@ import os
 import cv2
 import numpy as np
 
-PATH_TO_DATA = '../WIDER/train_images/'
-PATH_TO_ANNS = '../WIDER/wider_face_train_bbx_gt.txt'
+PATH_TO_DATA = '../Data/WIDER/train_images/'
+PATH_TO_ANNS = '../Data/WIDER/wider_face_train_bbx_gt.txt'
 
 # PATH_TO_DATA = '../WIDER/test_images/'
 # PATH_TO_ANNS = '../WIDER/wider_face_val_bbx_gt.txt'
@@ -25,12 +25,12 @@ for line in anns_file:
         img = cv2.imread(PATH_TO_DATA + line.strip())
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # cur_entry['img'] = img
-        stage = (stage+1)%3
+        stage = (stage+1) % 3
         cur_entry['hwc'] = img.shape[0:3]
     elif stage == 1: 
         cur_entry['n'] = int(line.strip())
         cur_count = 0
-        stage = (stage+1)%3
+        stage = (stage+1) % 3
     elif stage == 2:
         try:
             box = [int(i) for i in line.strip().split()[0:4]]
@@ -50,7 +50,7 @@ for line in anns_file:
             data.append(cur_entry)
             cur_entry = {}
 
-pickle.dump(obj = data, file = open('./wider_train.p', 'wb'))
+pickle.dump(obj=data, file=open('./wider_train.p', 'wb'))
 # pickle.dump(obj = data, file = open('./wider_test.p', 'wb'))
 
 # The following files contain invalid bboxes (remove negatives): 
