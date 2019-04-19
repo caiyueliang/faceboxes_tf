@@ -100,8 +100,6 @@ def load_pb(load_path, save_name='faceboxes.pb'):
 # def save_ckpt(save_path, save_name):
 
 if __name__ == '__main__':
-    frozen_graph_to_tflite()
-
     multiprocessing.set_start_method('spawn')
     np.set_printoptions(suppress=True)
     data_train_source = './wider_train.p'
@@ -136,7 +134,7 @@ if __name__ == '__main__':
 
     train_data = pickle.load(file=open(data_train_source, 'rb'))
     test_data = pickle.load(file=open(data_test_source, 'rb'))
-    
+
     svc_train = None
     if IS_AUG and not USE_AUG_TF:
         aug_params = {'use_tf': False}
@@ -220,12 +218,5 @@ if __name__ == '__main__':
                 saver.save(sess, save_f + model_name, global_step=i)
                 save_pb(save_f)
                 save_pbtxt(save_f)
-
-    import tensorflow as tf
-
-    img = tf.placeholder(name="img", dtype=tf.float32, shape=(1, 64, 64, 3))
-    var = tf.get_variable("weights", dtype=tf.float32, shape=(1, 64, 64, 3))
-    val = img + var
-    out = tf.identity(val, name="out")
 
 
