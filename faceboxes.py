@@ -40,8 +40,8 @@ if __name__ == '__main__':
     np.set_printoptions(suppress=True)
     data_train_source = './wider_train.p'
     data_test_source = './wider_test.p'
-    data_train_dir = '../Data/WIDER/WIDER_train/'
-    data_test_dir = '../Data/WIDER/WIDER_val/'
+    data_train_dir = '../Data/WIDER/WIDER_train/images/'
+    data_test_dir = '../Data/WIDER/WIDER_val/images/'
     save_f = './models/'
     model_name = 'facebox'
     PRINT_FREQ = 500

@@ -72,7 +72,8 @@ class DataService(object):
                 print('Assertion Error (edge-case) - skipping...')
             
     def read_image(self, loc):
-        img = cv2.imread(self.data_path + loc.strip())
+        # print(os.path.join(self.data_path, loc.strip()))
+        img = cv2.imread(os.path.join(self.data_path, loc.strip()))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img
     
