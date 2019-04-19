@@ -26,8 +26,8 @@ class FaceBox(object):
             DEBUG = False
             if DEBUG: print('Input shape: ', in_x.get_shape())
             path_1 = tf.layers.conv2d(in_x, 32, 
-                                    kernel_size = [1, 1],
-                                    strides = 1,
+                                    kernel_size=[1, 1],
+                                    strides=1,
                                     kernel_initializer=self.base_init,
                                     kernel_regularizer=self.reg_init,
                                     name = name + 'conv_1_1',
