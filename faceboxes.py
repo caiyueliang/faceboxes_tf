@@ -108,9 +108,9 @@ if __name__ == '__main__':
     data_test_dir = '../Data/WIDER/WIDER_val/images/'
     save_f = './models/'
     model_name = 'faceboxes.ckpt'
-    PRINT_FREQ = 200
-    TEST_FREQ = 200
-    SAVE_FREQ = 20
+    PRINT_FREQ = 500
+    TEST_FREQ = 1000
+    SAVE_FREQ = 1000
     BATCH_SIZE = 15
     IM_S = 1024
     IM_CHANNELS = 3
@@ -213,7 +213,7 @@ if __name__ == '__main__':
                     test_mAP_pred.append(anchors.compute_mAP(imgs, lbls, pred_boxes, normalised=USE_NORM))
                 print('Mean test mAP: ', np.mean(test_mAP_pred))
                 test_mAP_pred = []
-            if i % SAVE_FREQ == 0:
+            # if i % SAVE_FREQ == 0:
                 print('Saving model...')
                 saver.save(sess, save_f + model_name, global_step=i)
                 save_pb(save_f)
