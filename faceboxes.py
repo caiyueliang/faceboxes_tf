@@ -68,23 +68,23 @@ if __name__ == '__main__':
     boxes_vec, boxes_lst, stubs = anchors.get_boxes(CONFIG, normalised = USE_NORM)
     tf.reset_default_graph()
 
-    train_data = pickle.load(file = open(data_train_source, 'rb'))
-    test_data = pickle.load(file = open(data_test_source, 'rb'))
+    train_data = pickle.load(file=open(data_train_source, 'rb'))
+    test_data = pickle.load(file=open(data_test_source, 'rb'))
     
     svc_train = None
     if IS_AUG and not USE_AUG_TF:
         aug_params = {'use_tf': False}
         if USE_MP:
-            mp_dict = {'lim': MAX_PREBUFF_LIM, 'n':N_WORKERS, 'b_s':BATCH_SIZE}
-            svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), mp_dict, normalised = USE_NORM)
+            mp_dict = {'lim': MAX_PREBUFF_LIM, 'n': N_WORKERS, 'b_s': BATCH_SIZE}
+            svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), mp_dict, normalised=USE_NORM)
         else:
-            svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), None, normalised = USE_NORM)
+            svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), None, normalised=USE_NORM)
         print('Starting augmenter...')
         svc_train.start()
         print('Running model...')
     else:
-        svc_train = data.DataService(train_data, False, data_train_dir, (IM_S, IM_S), normalised = USE_NORM)
-    svc_test = data.DataService(test_data, False, data_test_dir, (IM_S, IM_S), normalised = USE_NORM)
+        svc_train = data.DataService(train_data, False, data_train_dir, (IM_S, IM_S), normalised=USE_NORM)
+    svc_test = data.DataService(test_data, False, data_test_dir, (IM_S, IM_S), normalised=USE_NORM)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -93,12 +93,12 @@ if __name__ == '__main__':
             gpu_aug = augmenter.AugmenterGPU(sess, (IM_S, IM_S))
             aug_params = {'use_tf': True, 'augmenter': gpu_aug}
             if USE_MP:
-                mp_dict = {'lim': MAX_PREBUFF_LIM, 'n':N_WORKERS, 'b_s':BATCH_SIZE}
-                svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), mp_dict, normalised = USE_NORM)
+                mp_dict = {'lim': MAX_PREBUFF_LIM, 'n': N_WORKERS, 'b_s': BATCH_SIZE}
+                svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), mp_dict, normalised=USE_NORM)
             else:
-                svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), None, normalised = USE_NORM)
+                svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), None, normalised=USE_NORM)
         print('Building model...')
-        fb_model = FaceBox(sess, (BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised = USE_NORM)
+        fb_model = FaceBox(sess, (BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
         print('Num params: ', count_number_trainable_params())
         print('Attempting to find a save file...')
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=5, keep_checkpoint_every_n_hours=2)
@@ -138,17 +138,17 @@ if __name__ == '__main__':
                 print('Mean train mAP: ', np.mean(train_mAP_pred))
                 train_mAP_pred = []
                 train_loss = []
-            if i%TEST_FREQ == 0:
+            if i % TEST_FREQ == 0:
                 for j in range(25):
                     imgs, lbls = svc_test.random_sample(BATCH_SIZE)
                     pred_confs, pred_locs = fb_model.test_iter(imgs)
                     pred_boxes = anchors.decode_batch(boxes_vec, pred_locs, pred_confs)
-                    test_mAP_pred.append(anchors.compute_mAP(imgs, lbls, pred_boxes, normalised = USE_NORM))
+                    test_mAP_pred.append(anchors.compute_mAP(imgs, lbls, pred_boxes, normalised=USE_NORM))
                 print('Mean test mAP: ', np.mean(test_mAP_pred))
                 test_mAP_pred = []
             if i % SAVE_FREQ == 0:
                 print('Saving model...')
-                saver.save(sess, save_f + model_name, global_step = i)
+                saver.save(sess, save_f + model_name, global_step=i)
 
     
 
