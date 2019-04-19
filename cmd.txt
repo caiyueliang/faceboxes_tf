@@ -29,11 +29,11 @@ freeze_graph总共有11个参数，一个个介绍下(必选： 表示必须有�
 ==============================================================================================
 Tensorflow模型固化，将Tensorflow模型和计算图上变量的值合二为一。即 .pbtxt,.ckpt 装换成 .pb 文件
 freeze_graph \
---input_graph=./models/run00/graph.pbtxt \
---input_checkpoint=./models/run00/model.ckpt-13150 \
+--input_graph=./models/graph.pbtxt \
+--input_checkpoint=./models/faceboxes.ckpt-20 \
 --input_binary=false \
 --output_graph=./models/faceboxes.pb \
---output_node_names=reshaping/loc_predict,reshaping/conf_predict
+--output_node_names=inputs,out_locs,out_confs
 
 ==============================================================================================
 用tflite_convert将 .pb 转 .tflite

@@ -11,6 +11,7 @@ logs/*
 .Python
 build/
 .idea/
+models/
 develop-eggs/
 dist/
 downloads/

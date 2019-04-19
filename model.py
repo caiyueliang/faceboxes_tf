@@ -18,8 +18,8 @@ class FaceBox(object):
     
     def CReLU(self, in_x, name):
         with tf.variable_scope(name):
-            x = tf.layers.batch_normalization(in_x, training = self.is_training, name = name + '_batch')
-            return tf.nn.crelu(x, name = name + '_crelu')
+            x = tf.layers.batch_normalization(in_x, training=self.is_training, name=name + '_batch')
+            return tf.nn.crelu(x, name=name + '_crelu')
 
     def Inception(self, in_x, name):
         with tf.variable_scope(name):
@@ -33,8 +33,8 @@ class FaceBox(object):
                                     name = name + 'conv_1_1',
                                     activation = tf.nn.leaky_relu,
                                     padding = 'SAME')
-            path_1 = tf.layers.batch_normalization(path_1, training = self.is_training, name = name + 'path_1_batch')
-            path_2 = tf.layers.max_pooling2d(in_x, [3,3], 1, name = name+'pool_1_2',
+            path_1 = tf.layers.batch_normalization(path_1, training=self.is_training, name=name + 'path_1_batch')
+            path_2 = tf.layers.max_pooling2d(in_x, [3,3], 1, name=name+'pool_1_2',
                                     padding = 'SAME') # No striding to preserve shape
             path_2 = tf.layers.conv2d(path_2, 32, 
                                     kernel_size = [1, 1],
@@ -44,7 +44,7 @@ class FaceBox(object):
                                     name = name + 'conv_1_2',
                                     activation = tf.nn.leaky_relu,
                                     padding = 'SAME')
-            path_2 = tf.layers.batch_normalization(path_2, training = self.is_training, name = name + 'path_2_batch')
+            path_2 = tf.layers.batch_normalization(path_2, training=self.is_training, name=name + 'path_2_batch')
             if DEBUG: print('Path 2 shape: ', path_2.get_shape())
             path_3 = tf.layers.conv2d(in_x, 24, 
                                     kernel_size = [1, 1],

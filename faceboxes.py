@@ -10,6 +10,7 @@ import multiprocessing
 import augmenter
 from tensorflow.python.framework import graph_util
 from tensorflow.python.platform import gfile
+from tensorflow.python.framework.graph_util import convert_variables_to_constants
 
 
 def count_number_trainable_params(scope = ""):
@@ -73,6 +74,14 @@ def load_pb(load_path, save_name='faceboxes.pb'):
     # print(ret)
 
 
+def save_pbtxt(save_path, save_name='graph.pbtxt', output_node_names=['inputs', 'out_locs', 'out_confs']):
+    print('save model graph to %s', os.path.join(save_path, save_name))
+    save_graph = graph_util.convert_variables_to_constants(sess, sess.graph_def, output_node_names)
+    tf.train.write_graph(save_graph, '', os.path.join(save_path, save_name))
+
+
+# def save_ckpt(save_path, save_name):
+
 if __name__ == '__main__':
     multiprocessing.set_start_method('spawn')
     np.set_printoptions(suppress=True)
@@ -81,7 +90,7 @@ if __name__ == '__main__':
     data_train_dir = '../Data/WIDER/WIDER_train/images/'
     data_test_dir = '../Data/WIDER/WIDER_val/images/'
     save_f = './models/'
-    model_name = 'facebox'
+    model_name = 'faceboxes.ckpt'
     PRINT_FREQ = 200
     TEST_FREQ = 200
     SAVE_FREQ = 20
@@ -147,6 +156,7 @@ if __name__ == '__main__':
             print('#####################')
             print(ckpt.model_checkpoint_path)
             saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
+            print('保存文件路径', ckpt.model_checkpoint_path + '.meta')
             saver.restore(sess, ckpt.model_checkpoint_path)
             print('Succesfully loaded saved model')
         except IOError:
@@ -189,7 +199,7 @@ if __name__ == '__main__':
             if i % SAVE_FREQ == 0:
                 print('Saving model...')
                 saver.save(sess, save_f + model_name, global_step=i)
-                save_pb(save_f)
+                save_pbtxt(save_f)
 
     
 
