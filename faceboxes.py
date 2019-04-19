@@ -101,7 +101,7 @@ def load_pb(load_path, save_name='faceboxes.pb'):
 
 if __name__ == '__main__':
     frozen_graph_to_tflite()
-    
+
     multiprocessing.set_start_method('spawn')
     np.set_printoptions(suppress=True)
     data_train_source = './wider_train.p'
