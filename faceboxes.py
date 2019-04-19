@@ -41,9 +41,32 @@ def get_nb_params_shape(shape):
     return nb_params
 
 
+def frozen_graph_to_tflite():
+    graph_def_file = "./models/faceboxes.pb"
+    input_arrays = ["inputs"]
+    output_arrays = ['out_locs', 'out_confs']
+
+    converter = tf.lite.TFLiteConverter.from_frozen_graph(graph_def_file, input_arrays, output_arrays)
+    tflite_model = converter.convert()
+    open("./models/faceboxes.tflite", "wb").write(tflite_model)
+
+
+def save_tflite():
+    sess.run(tf.global_variables_initializer())
+    converter = tf.lite.TFLiteConverter.from_session(sess, ['inputs'], ['out_locs', 'out_confs'])
+    tflite_model = converter.convert()
+    open("converted_model.tflite", "wb").write(tflite_model)
+
+
+def save_pbtxt(save_path, save_name='graph.pbtxt', output_node_names=['inputs', 'out_locs', 'out_confs']):
+    print('save model graph to .pbtxt: %s' % os.path.join(save_path, save_name))
+    save_graph = graph_util.convert_variables_to_constants(sess, sess.graph_def, output_node_names)
+    tf.train.write_graph(save_graph, '', os.path.join(save_path, save_name))
+
+
 # 保存为pb格式
 def save_pb(save_path, save_name='faceboxes.pb', output_node_names=['inputs', 'out_locs', 'out_confs']):
-    print('save model to .pb')
+    print('save model to .pb: %s' % os.path.join(save_path, save_name))
     # convert_variables_to_constants 需要指定output_node_names，list()，可以多个
     # 此处务必和前面的输入输出对应上，其他的不用管
     constant_graph = graph_util.convert_variables_to_constants(sess, sess.graph_def, output_node_names)
@@ -74,15 +97,11 @@ def load_pb(load_path, save_name='faceboxes.pb'):
     # print(ret)
 
 
-def save_pbtxt(save_path, save_name='graph.pbtxt', output_node_names=['inputs', 'out_locs', 'out_confs']):
-    print('save model graph to %s', os.path.join(save_path, save_name))
-    save_graph = graph_util.convert_variables_to_constants(sess, sess.graph_def, output_node_names)
-    tf.train.write_graph(save_graph, '', os.path.join(save_path, save_name))
-
-
 # def save_ckpt(save_path, save_name):
 
 if __name__ == '__main__':
+    frozen_graph_to_tflite()
+    
     multiprocessing.set_start_method('spawn')
     np.set_printoptions(suppress=True)
     data_train_source = './wider_train.p'
@@ -199,7 +218,14 @@ if __name__ == '__main__':
             if i % SAVE_FREQ == 0:
                 print('Saving model...')
                 saver.save(sess, save_f + model_name, global_step=i)
+                save_pb(save_f)
                 save_pbtxt(save_f)
 
-    
+    import tensorflow as tf
+
+    img = tf.placeholder(name="img", dtype=tf.float32, shape=(1, 64, 64, 3))
+    var = tf.get_variable("weights", dtype=tf.float32, shape=(1, 64, 64, 3))
+    val = img + var
+    out = tf.identity(val, name="out")
+
 
