@@ -119,9 +119,9 @@ if __name__ == '__main__':
         train_mAP_pred = []
         train_loss = []
         test_mAP_pred = []
-        while (1<2):
-            print(' Iteration ', i, '                                                ', end = '\r')
-            i+=1
+        while True:
+            print(' Iteration ', i, '                                                ', end='\r')
+            i += 1
             imgs, lbls = None, None
             if USE_MP: 
                 imgs, lbls = svc_train.pop()
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             train_loss.append(loss)
             train_mAP_pred.append(mAP)
             writer.add_summary(summary, i)
-            if i%PRINT_FREQ == 0:
+            if i % PRINT_FREQ == 0:
                 print("")
                 print('Iteration: ', i)
                 print('Mean train loss: ', np.mean(train_loss))
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                     test_mAP_pred.append(anchors.compute_mAP(imgs, lbls, pred_boxes, normalised = USE_NORM))
                 print('Mean test mAP: ', np.mean(test_mAP_pred))
                 test_mAP_pred = []
-            if i%SAVE_FREQ == 0:
+            if i % SAVE_FREQ == 0:
                 print('Saving model...')
                 saver.save(sess, save_f + model_name, global_step = i)
 
