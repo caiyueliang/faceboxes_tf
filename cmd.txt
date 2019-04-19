@@ -1,0 +1,71 @@
+python create_tfrecords.py \
+    --image_dir=../Data/WIDER/train/images/ \
+    --annotations_dir=../Data/WIDER/train/annotations/ \
+    --output=data/train_shards/ \
+    --num_shards=150
+
+python create_tfrecords.py \
+    --image_dir=../Data/WIDER/val/images/ \
+    --annotations_dir=../Data/WIDER/val/annotations/ \
+    --output=data/val_shards/ \
+    --num_shards=20
+
+
+==============================================================================================
+TF to TF lite
+==============================================================================================
+freeze_graph总共有11个参数，一个个介绍下(必选： 表示必须有值；可选： 表示可以为空)：
+1、input_graph：（必选）模型文件，可以是二进制的pb文件，或文本的meta文件，用input_binary来指定区分（见下面说明）
+2、input_saver：（可选）Saver解析器。保存模型和权限时，Saver也可以自身序列化保存，以便在加载时应用合适的版本。主要用于版本不兼容时使用。可以为空，为空时用当前版本的Saver。
+3、input_binary：（可选）配合input_graph用，为true时，input_graph为二进制，为false时，input_graph为文件。默认False
+4、input_checkpoint：（必选）检查点数据文件。训练时，给Saver用于保存权重、偏置等变量值。这时用于模型恢复变量值。
+5、output_node_names：（必选）输出节点的名字，有多个时用逗号分开。用于指定输出节点，将没有在输出线上的其它节点剔除。
+6、restore_op_name：（可选）从模型恢复节点的名字。升级版中已弃用。默认：save/restore_all
+7、filename_tensor_name：（可选）已弃用。默认：save/Const:0
+8、output_graph：（必选）用来保存整合后的模型输出文件。
+9、clear_devices：（可选），默认True。指定是否清除训练时节点指定的运算设备（如cpu、gpu、tpu。cpu是默认）
+10、initializer_nodes：（可选）默认空。权限加载后，可通过此参数来指定需要初始化的节点，用逗号分隔多个节点名字。
+11、variable_names_blacklist：（可先）默认空。变量黑名单，用于指定不用恢复值的变量，用逗号分隔多个变量名字。
+==============================================================================================
+Tensorflow模型固化，将Tensorflow模型和计算图上变量的值合二为一。即 .pbtxt,.ckpt 装换成 .pb 文件
+freeze_graph \
+--input_graph=./models/run00/graph.pbtxt \
+--input_checkpoint=./models/run00/model.ckpt-13150 \
+--input_binary=false \
+--output_graph=./models/faceboxes.pb \
+--output_node_names=reshaping/loc_predict,reshaping/conf_predict
+
+==============================================================================================
+用tflite_convert将 .pb 转 .tflite
+tflite_convert \
+  --output_file=./models/faceboxes.tflite \
+  --graph_def_file=./models/faceboxes.pb \
+  --input_arrays=inputs \
+  --output_arrays=out_locs,out_confs
+
+tflite_convert \
+  --output_file=./models/faceboxes.tflite \
+  --graph_def_file=./models/faceboxes.pb \
+  --inference_type=QUANTIZED_UINT8 \
+  --input_arrays=inputs \
+  --output_arrays=out_locs,out_confs \
+  --mean_values=128 \
+  --std_dev_values=127
+
+tflite_convert \
+  --output_file=/tmp/foo.tflite \
+  --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1
+
+
+==============================================================================================
+用tflite_convert 进行量化
+tflite_convert \
+  --output_file=/tmp/foo.tflite \
+  --graph_def_file=/tmp/some_quantized_graph.pb \
+  --inference_type=QUANTIZED_UINT8 \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1 \
+  --mean_values=128 \
+  --std_dev_values=127
