@@ -12,6 +12,11 @@ from tensorflow.python.framework import graph_util
 from tensorflow.python.platform import gfile
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 
+config = tf.ConfigProto()
+# config.gpu_options.per_process_gpu_memory_fraction = 0.5  # 程序最多只能占用指定gpu50%的显存
+config.gpu_options.allow_growth = True                      # 程序按需申请内存
+sess = tf.Session(config=config)
+
 
 def count_number_trainable_params(scope = ""):
     '''
@@ -105,14 +110,12 @@ def train_iter(anchors_vec, loss, imgs, lbls, normalised=False):
         target_confs: confs
     }
 
-    pred_confs, pred_locs,  _, loss, iter = sess.run(
-        fetches=[p_confs, out_locs, train_op, loss, global_iter_val],
-        feed_dict=feed_dict)
+    pred_confs, pred_locs,  _, loss_value, iter = sess.run(fetches=[p_confs, out_locs, train_op, loss, global_iter_val], feed_dict=feed_dict)
 
     pred_boxes = anchors.decode_batch(anchors_vec, pred_locs, pred_confs)
     mAP = anchors.compute_mAP(imgs, lbls, pred_boxes, normalised=normalised)
-    print('Iter:', iter[0], 'LR:', iter[1], 'Loss:', loss, 'mAP:', mAP, 'Max:', np.max(pred_locs), 'Min:', np.min(pred_locs))
-    return pred_confs, pred_locs, loss, mAP
+    print('Iter:', iter[0], 'LR:', iter[1], 'Loss:', loss_value, 'mAP:', mAP, 'Max:', np.max(pred_locs), 'Min:', np.min(pred_locs))
+    return pred_confs, pred_locs, loss_value, mAP
 
 
 # 测试迭代器
@@ -256,8 +259,8 @@ if __name__ == '__main__':
             else:
                 imgs, lbls = svc_train.random_sample(BATCH_SIZE)
 
-            pred_confs, pred_locs, loss, mAP = train_iter(boxes_vec, loss, imgs, lbls)
-            train_loss.append(loss)
+            pred_confs, pred_locs, loss_value, mAP = train_iter(boxes_vec, loss, imgs, lbls)
+            train_loss.append(loss_value)
             train_mAP_pred.append(mAP)
 
             if i % PRINT_FREQ == 0:
