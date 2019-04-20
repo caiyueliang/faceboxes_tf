@@ -227,6 +227,6 @@ if __name__ == '__main__':
                 saver.save(sess, os.path.join(save_path, model_name), global_step=i)
                 save_pb(sess, save_path)
                 save_pbtxt(sess, save_path)
-                save_tflite(sess, save_path)
+                # save_tflite(sess, save_path)
 
 

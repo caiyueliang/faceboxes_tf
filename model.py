@@ -5,17 +5,17 @@ import anchors
 
 class FaceBox(object):
     def __init__(self, sess, input_shape, anchors_in, normalised=False, anchors_scale=anchors.SCALE_FACTOR):
-        self.sess = sess
+        # self.sess = sess
         self.input_shape = input_shape
         self.batch_size = input_shape[0]
-        self.base_init = tf.contrib.layers.xavier_initializer() # Initialise weights
-        self.reg_init = tf.contrib.layers.l2_regularizer(scale=0.0005) # Initialise regularisation
+        self.base_init = tf.contrib.layers.xavier_initializer()             # Initialise weights
+        self.reg_init = tf.contrib.layers.l2_regularizer(scale=0.0005)      # Initialise regularisation
         self.anchor_len = anchors_in.shape[0]
         self.anchors_bbox = tf.to_float(tf.constant(anchors_in))
         self.anchors_bbox_scale = anchors_scale
         self.normalised = normalised
         self.build_graph()
-    
+
     def CReLU(self, in_x, name):
         with tf.variable_scope(name):
             x = tf.layers.batch_normalization(in_x, training=self.is_training, name=name + '_batch')
@@ -137,7 +137,7 @@ class FaceBox(object):
 
         # Rapidly Digested Convolutional Layers
         print('Building RDCL...')
-        conv_1 = tf.layers.conv2d(self.inputs, 24, 
+        conv_1 = tf.layers.conv2d(self.inputs, 24,
                                 kernel_size=[7, 7],
                                 strides = 4,
                                 kernel_initializer=self.base_init,
