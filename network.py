@@ -132,12 +132,62 @@ class FaceBox(object):
                                                activation=None,
                                                name=name + '_anchor_conf_conv',
                                                padding='SAME')
-
             return bbox_loc_conv, bbox_class_conv
+
+    def hard_negative_mining(self, conf_loss, pos_ids, mult=3, min_negs=10):
+        with tf.name_scope('hard_negative_mining') as scope:
+            pos_ids = tf.unstack(pos_ids)
+            neg_ids = [tf.logical_not(p) for p in pos_ids]
+            conf_loss = tf.unstack(conf_loss)
+            loss_out = []
+            for c_i in range(self.batch_size):
+                c_pos_ids = pos_ids[c_i]
+                c_neg_ids = neg_ids[c_i]
+                c_num_neg = tf.cast(tf.reduce_sum(tf.cast(c_neg_ids, tf.float32)), tf.int32)
+                c_num_pos = tf.cast(tf.reduce_sum(tf.cast(c_pos_ids, tf.float32)), tf.int32)
+                c_conf_loss = conf_loss[c_i]
+                # c_l1_loss = l1_loss[c_i]
+                # Extract negative confidence losses only
+                loss_conf_neg = tf.reshape(tf.boolean_mask(c_conf_loss, c_neg_ids), [c_num_neg])
+                loss_conf_pos = tf.reshape(tf.boolean_mask(c_conf_loss, c_pos_ids), [c_num_pos])
+                # loss_l1_pos = tf.reshape(tf.boolean_mask(c_l1_loss, c_pos_ids), [c_num_pos])
+                c_neg_cap = tf.cast(mult * c_num_pos, tf.int32)
+                c_neg_cap = tf.maximum(min_negs, c_neg_cap) # Cap minimum negative value to min_negs
+                c_neg_cap = tf.minimum(c_neg_cap, c_num_neg) # Cap minimum values to max # = anchor_len
+                loss_conf_k_neg, _ = tf.nn.top_k(loss_conf_neg, k=c_neg_cap, sorted=True)
+                loss_out.append(tf.concat((loss_conf_pos, loss_conf_k_neg), axis=0))
+            return tf.concat(loss_out, axis=0)
+
+    def compute_loss(self, loc_preds, conf_preds, loc_true, conf_true):
+        with tf.name_scope('loss') as scope:
+            loc_preds = tf.reshape(loc_preds, (self.batch_size, -1, 4))
+            conf_preds = tf.reshape(conf_preds, (self.batch_size, -1, 2))
+            loc_true = tf.reshape(loc_true, (self.batch_size, -1, 4))
+            conf_true = tf.cast(tf.reshape(conf_true, (self.batch_size, -1)), tf.int32)
+            conf_true_oh = tf.one_hot(conf_true, 2)
+
+            positive_check = tf.reshape(tf.cast(tf.equal(conf_true, 1), tf.float32), (self.batch_size, self.anchor_len))
+            pos_ids = tf.cast(positive_check, tf.bool)
+            n_pos = tf.maximum(tf.reduce_sum(positive_check), 1)
+
+            # Smoothed L1 loss
+            l1_loss = tf.losses.huber_loss(loc_preds, loc_true, reduction=tf.losses.Reduction.NONE)
+            # Zero out L1 loss for negative boxes
+            l1_loss = positive_check * tf.reduce_sum(l1_loss, axis=-1)
+
+            # conf_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels =
+            # tf.squeeze(tf.to_int32(conf_true)), logits = conf_preds)
+            conf_loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=conf_true_oh, logits=conf_preds)
+            conf_loss = self.hard_negative_mining(conf_loss, pos_ids)
+
+            loss = (tf.reduce_sum(l1_loss) + tf.reduce_sum(conf_loss))/n_pos
+            return loss
 
     def __call__(self, inputs, training):
         # Process inputs
-        self.inputs = tf.placeholder(tf.float32, shape=(self.batch_size, self.input_shape[1], self.input_shape[2], self.input_shape[3]), name="inputs")
+        self.inputs = tf.placeholder(tf.float32,
+                                     shape=(self.batch_size, self.input_shape[1], self.input_shape[2], self.input_shape[3]),
+                                     name="inputs")
         self.inputs = self.inputs / 255.0  # Normalise to 0-1
         self.inputs = 2.0 * self.inputs - 1.0  # Makes the same as InceptionNet
         # self.is_training = tf.placeholder(tf.bool, name="is_training")
@@ -160,7 +210,7 @@ class FaceBox(object):
                                   kernel_regularizer=self.reg_init,
                                   name='Conv1',
                                   padding='SAME')
-        conv_1_crelu = self.CReLU(conv_1, 'CReLU_1')
+        conv_1_crelu = self.CReLU(conv_1, training, 'CReLU_1')
         conv_1_pool = tf.layers.max_pooling2d(conv_1_crelu, [3, 3], 2, name='Pool1', padding='SAME')
         # conv_1_pool = tf.layers.batch_normalization(conv_1_pool, training=self.is_training, name='conv_1_pool_batch')
         conv_1_pool = self.batch_norm(conv_1_pool, training, 'conv_1_pool')
@@ -172,15 +222,15 @@ class FaceBox(object):
                                   kernel_regularizer=self.reg_init,
                                   name='Conv2',
                                   padding='SAME')
-        conv_2_crelu = self.CReLU(conv_2, 'CReLU_2')
+        conv_2_crelu = self.CReLU(conv_2, training, 'CReLU_2')
         conv_2_pool = tf.layers.max_pooling2d(conv_2_crelu, [3, 3], 2, name='Pool2', padding='SAME')
         # conv_2_pool = tf.layers.batch_normalization(conv_2_pool, training=self.is_training, name='conv_2_pool_batch')
         conv_2_pool = self.batch_norm(conv_2_pool, training, 'conv_2_pool')
 
         # print('Building Inception...')
-        incept_1 = self.Inception(conv_2_pool, 'inception_1')
-        incept_2 = self.Inception(incept_1, 'inception_2')
-        incept_3 = self.Inception(incept_2, 'inception_3')
+        incept_1 = self.Inception(conv_2_pool, training, 'inception_1')
+        incept_2 = self.Inception(incept_1, training, 'inception_2')
+        incept_3 = self.Inception(incept_2, training, 'inception_3')
 
         l, c = self.build_anchor(incept_3, 21, 'anchor_incept_3')
         bbox_locs.append(l)
