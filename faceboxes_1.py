@@ -112,7 +112,7 @@ def train_iter(anchors_vec, loss, imgs, lbls, normalised=False):
     pred_boxes = anchors.decode_batch(anchors_vec, pred_locs, pred_confs)
     mAP = anchors.compute_mAP(imgs, lbls, pred_boxes, normalised=normalised)
     print('Iter:', iter[0], 'LR:', iter[1], 'Loss:', loss, 'mAP:', mAP, 'Max:', np.max(pred_locs), 'Min:', np.min(pred_locs))
-    return pred_confs, pred_locs, loss, summary, mAP
+    return pred_confs, pred_locs, loss, mAP
 
 
 # 测试迭代器
@@ -194,12 +194,13 @@ if __name__ == '__main__':
         # fb_model = FaceBox(sess, (BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
         fb_model = FaceBox((BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
 
+        # 输入参数
         training = tf.placeholder(tf.bool, shape=[], name='training')
-        out_locs, out_confs, p_confs = fb_model(training)
-
         inputs = tf.placeholder(tf.float32, shape=(BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), name="inputs")
-        target_locs = tf.placeholder(tf.float32, shape=(BATCH_SIZE, boxes_vec, 4), name='target_locs')
-        target_confs = tf.placeholder(tf.float32, shape=(BATCH_SIZE, boxes_vec, 1), name='target_confs')
+        target_locs = tf.placeholder(tf.float32, shape=(BATCH_SIZE, boxes_vec.shape[0], 4), name='target_locs')
+        target_confs = tf.placeholder(tf.float32, shape=(BATCH_SIZE, boxes_vec.shape[0], 1), name='target_confs')
+
+        out_locs, out_confs, p_confs = fb_model(inputs, training)
 
         loss = fb_model.compute_loss(out_locs, out_confs, target_locs, target_confs)
         loss += tf.losses.get_regularization_loss()  # Add regularisation
@@ -255,8 +256,7 @@ if __name__ == '__main__':
             else:
                 imgs, lbls = svc_train.random_sample(BATCH_SIZE)
 
-
-            pred_confs, pred_locs, loss, summary, mAP = train_iter(boxes_vec, loss, imgs, lbls)
+            pred_confs, pred_locs, loss, mAP = train_iter(boxes_vec, loss, imgs, lbls)
             train_loss.append(loss)
             train_mAP_pred.append(mAP)
 
