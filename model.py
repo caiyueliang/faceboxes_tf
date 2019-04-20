@@ -115,7 +115,7 @@ class FaceBox(object):
                 , ' anchor loc shape: ', bbox_loc_conv.get_shape())
             return bbox_loc_conv, bbox_class_conv
 
-    def build_graph(self, DEBUG=True):
+    def build_graph(self, DEBUG=False):
         # Process inputs
         self.inputs = tf.placeholder(tf.float32, shape=(self.batch_size, self.input_shape[1], self.input_shape[2], self.input_shape[3]), name="inputs")
         self.inputs = self.inputs / 255.0           # Normalise to 0-1
@@ -138,7 +138,7 @@ class FaceBox(object):
         # Rapidly Digested Convolutional Layers
         print('Building RDCL...')
         conv_1 = tf.layers.conv2d(self.inputs, 24, 
-                                kernel_size = [7, 7],
+                                kernel_size=[7, 7],
                                 strides = 4,
                                 kernel_initializer=self.base_init,
                                 kernel_regularizer=self.reg_init,
@@ -330,9 +330,9 @@ class FaceBox(object):
         }
 
         # ==================================================================================
-        pred_confs, pred_locs, summary, _, loss, _, iter = self.sess.run(
-            fetches=[self.p_confs, self.out_locs, self.merged, self.train, self.loss, self.i_plus, self.global_iter_val],
-            feed_dict=feed_dict)
+        # pred_confs, pred_locs, summary, _, loss, _, iter = self.sess.run(
+        #     fetches=[self.p_confs, self.out_locs, self.merged, self.train, self.loss, self.i_plus, self.global_iter_val],
+        #     feed_dict=feed_dict)
         # ==================================================================================
         # TODO
         pred_confs, pred_locs, summary, _, loss, _, iter = self.sess.run(

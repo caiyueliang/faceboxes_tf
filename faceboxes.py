@@ -51,21 +51,20 @@ def frozen_graph_to_tflite():
     open("./models/faceboxes.tflite", "wb").write(tflite_model)
 
 
-def save_tflite():
-    sess.run(tf.global_variables_initializer())
+def save_tflite(sess, save_path, save_name='faceboxes.tflite'):
     converter = tf.lite.TFLiteConverter.from_session(sess, ['inputs'], ['out_locs', 'out_confs'])
     tflite_model = converter.convert()
-    open("converted_model.tflite", "wb").write(tflite_model)
+    open(os.path.join(save_path, save_name), "wb").write(tflite_model)
 
 
-def save_pbtxt(save_path, save_name='graph.pbtxt', output_node_names=['inputs', 'out_locs', 'out_confs']):
+def save_pbtxt(sess, save_path, save_name='graph.pbtxt', output_node_names=['inputs', 'out_locs', 'out_confs']):
     print('save model graph to .pbtxt: %s' % os.path.join(save_path, save_name))
     save_graph = graph_util.convert_variables_to_constants(sess, sess.graph_def, output_node_names)
     tf.train.write_graph(save_graph, '', os.path.join(save_path, save_name))
 
 
 # 保存为pb格式
-def save_pb(save_path, save_name='faceboxes.pb', output_node_names=['inputs', 'out_locs', 'out_confs']):
+def save_pb(sess, save_path, save_name='faceboxes.pb', output_node_names=['inputs', 'out_locs', 'out_confs']):
     print('save model to .pb: %s' % os.path.join(save_path, save_name))
     # convert_variables_to_constants 需要指定output_node_names，list()，可以多个
     # 此处务必和前面的输入输出对应上，其他的不用管
@@ -76,7 +75,7 @@ def save_pb(save_path, save_name='faceboxes.pb', output_node_names=['inputs', 'o
 
 
 # 加载pb格式
-def load_pb(load_path, save_name='faceboxes.pb'):
+def load_pb(sess, load_path, save_name='faceboxes.pb'):
     # sess = tf.Session()
     with gfile.FastGFile(os.path.join(load_path, save_name), mode='rb') as f:  # 加载模型
         graph_def = tf.GraphDef()
@@ -106,12 +105,12 @@ if __name__ == '__main__':
     data_test_source = './wider_test.p'
     data_train_dir = '../Data/WIDER/WIDER_train/images/'
     data_test_dir = '../Data/WIDER/WIDER_val/images/'
-    save_f = './models/'
+    save_path = './models/'
     model_name = 'faceboxes.ckpt'
     PRINT_FREQ = 500
-    TEST_FREQ = 1000
+    TEST_FREQ = 20
     SAVE_FREQ = 1000
-    BATCH_SIZE = 15
+    BATCH_SIZE = 32
     IM_S = 1024
     IM_CHANNELS = 3
     N_WORKERS = 20
@@ -152,6 +151,7 @@ if __name__ == '__main__':
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+
     with tf.Session(config=config) as sess:
         if IS_AUG and USE_AUG_TF:
             gpu_aug = augmenter.AugmenterGPU(sess, (IM_S, IM_S))
@@ -165,20 +165,29 @@ if __name__ == '__main__':
         fb_model = FaceBox(sess, (BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
         print('Num params: ', count_number_trainable_params())
         print('Attempting to find a save file...')
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=5, keep_checkpoint_every_n_hours=2)
-        try:
-            ckpt = tf.train.get_checkpoint_state(save_f)
-            if ckpt is None:
-                raise IOError('No valid save file found')
-            print('#####################')
-            print(ckpt.model_checkpoint_path)
-            saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
-            print('保存文件路径', ckpt.model_checkpoint_path + '.meta')
-            saver.restore(sess, ckpt.model_checkpoint_path)
+
+        # saver = tf.train.Saver(tf.global_variables(), max_to_keep=5, keep_checkpoint_every_n_hours=2)
+        # TODO
+        saver = tf.train.Saver()
+        # try:
+        #     ckpt = tf.train.get_checkpoint_state(save_path)
+        #     if ckpt is None:
+        #         raise IOError('No valid save file found')
+        #     print(ckpt.model_checkpoint_path)
+        #     saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
+        #     print('保存文件路径', ckpt.model_checkpoint_path + '.meta')
+        # except IOError:
+        #     print('Model not found - using default initialisation!')
+        #     sess.run(tf.global_variables_initializer())
+        # TODO
+        last_ckpt = tf.train.latest_checkpoint(save_path)
+        if last_ckpt is not None:
+            saver.restore(sess, last_ckpt)
             print('Succesfully loaded saved model')
-        except IOError:
+        else:
             print('Model not found - using default initialisation!')
             sess.run(tf.global_variables_initializer())
+
         writer = tf.summary.FileWriter('./logs', sess.graph)
         i = 0
         train_mAP_pred = []
@@ -215,8 +224,9 @@ if __name__ == '__main__':
                 test_mAP_pred = []
             # if i % SAVE_FREQ == 0:
                 print('Saving model...')
-                saver.save(sess, save_f + model_name, global_step=i)
-                save_pb(save_f)
-                save_pbtxt(save_f)
+                saver.save(sess, os.path.join(save_path, model_name), global_step=i)
+                save_pb(sess, save_path)
+                save_pbtxt(sess, save_path)
+                save_tflite(sess, save_path)
 
 
