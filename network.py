@@ -183,27 +183,24 @@ class FaceBox(object):
             loss = (tf.reduce_sum(l1_loss) + tf.reduce_sum(conf_loss))/n_pos
             return loss
 
+    # def __call__(self, inputs, training):
     def __call__(self, inputs, training):
         # Process inputs
-        self.inputs = tf.placeholder(tf.float32,
-                                     shape=(self.batch_size, self.input_shape[1], self.input_shape[2], self.input_shape[3]),
-                                     name="inputs")
-        self.inputs = self.inputs / 255.0  # Normalise to 0-1
-        self.inputs = 2.0 * self.inputs - 1.0  # Makes the same as InceptionNet
-        # self.is_training = tf.placeholder(tf.bool, name="is_training")
-        global_step = tf.Variable(0, trainable=False)
-        self.i_plus = tf.assign(global_step, global_step + 1)
+        inputs = inputs / 255.0         # Normalise to 0-1
+        inputs = 2.0 * inputs - 1.0     # Makes the same as InceptionNet
 
-        boundaries = [200000.0, 400000.0]
-        values = [0.001, 0.0001, 0.00001]
-        self.lr = tf.train.piecewise_constant(tf.to_float(global_step), boundaries, values, name='lr_select')
-        self.global_iter_val = [global_step, self.lr]
+        # global_step = tf.Variable(0, trainable=False)
+        # self.i_plus = tf.assign(global_step, global_step + 1)
+        # boundaries = [200000.0, 400000.0]
+        # values = [0.001, 0.0001, 0.00001]
+        # self.lr = tf.train.piecewise_constant(tf.to_float(global_step), boundaries, values, name='lr_select')
+        # self.global_iter_val = [global_step, self.lr]
 
         bbox_locs = []
         bbox_confs = []
 
         # print('Building RDCL...')
-        conv_1 = tf.layers.conv2d(self.inputs, 24,
+        conv_1 = tf.layers.conv2d(inputs, 24,
                                   kernel_size=[7, 7],
                                   strides=4,
                                   kernel_initializer=self.base_init,
@@ -284,36 +281,35 @@ class FaceBox(object):
         bbox_locs.append(l)
         bbox_confs.append(c)
 
-        self.out_locs = tf.concat([tf.reshape(i, [self.batch_size, -1, 4]) for i in bbox_locs], axis=-2)
-        self.out_confs = tf.concat([tf.reshape(i, [self.batch_size, -1, 2]) for i in bbox_confs], axis=-2)
-        self.out_locs = tf.reshape(self.out_locs, [self.batch_size, self.anchor_len, 4], name='out_locs')
-        # print('Locs min cap: ', np.log(1/512)*self.anchors_bbox_scale[1])
-        # print('Locs max cap: ', np.log(1024/32)*self.anchors_bbox_scale[1])
+        out_locs = tf.concat([tf.reshape(i, [self.batch_size, -1, 4]) for i in bbox_locs], axis=-2)
+        out_locs = tf.reshape(out_locs, [self.batch_size, self.anchor_len, 4], name='out_locs')
 
-        self.out_confs = tf.reshape(self.out_confs, [self.batch_size, self.anchor_len, 2], name='out_confs')
-        self.p_confs = tf.nn.softmax(self.out_confs, name='p_confs')
+        out_confs = tf.concat([tf.reshape(i, [self.batch_size, -1, 2]) for i in bbox_confs], axis=-2)
+        out_confs = tf.reshape(out_confs, [self.batch_size, self.anchor_len, 2], name='out_confs')
+        p_confs = tf.nn.softmax(out_confs, name='p_confs')
 
-        print('Output loc shapes', self.out_locs.get_shape())
-        print('Output conf shapes', self.out_confs.get_shape())
+        # print('Output loc shapes', out_locs.get_shape())
+        # print('Output conf shapes', out_confs.get_shape())
+        return out_locs, out_confs, p_confs
 
-        self.target_locs = tf.placeholder(tf.float32, shape=(self.batch_size, self.anchor_len, 4), name='target_locs')
-        self.target_confs = tf.placeholder(tf.float32, shape=(self.batch_size, self.anchor_len, 1), name='target_confs')
-
-        self.loss = self.compute_loss(self.out_locs, self.out_confs, self.target_locs, self.target_confs)
-        self.loss += tf.losses.get_regularization_loss()  # Add regularisation
-        tf.summary.scalar('Loss', self.loss)
-
-        # ==================================================================================
-        self.extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(self.extra_update_ops):
-            self.train = tf.train.AdamOptimizer(self.lr, epsilon=0.1).minimize(self.loss)
-            self.train = tf.train.MomentumOptimizer(self.lr, momentum=0.9, use_nesterov=True).minimize(self.loss)
-
-        # ==================================================================================
-        # TODO
-        optimizer = tf.train.AdamOptimizer(self.lr, epsilon=0.1)
-        minimize_op = optimizer.minimize(self.loss)
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        self.train_op = tf.group(minimize_op, update_ops)
-
-        self.merged = tf.summary.merge_all()
+        # self.target_locs = tf.placeholder(tf.float32, shape=(self.batch_size, self.anchor_len, 4), name='target_locs')
+        # self.target_confs = tf.placeholder(tf.float32, shape=(self.batch_size, self.anchor_len, 1), name='target_confs')
+        #
+        # self.loss = self.compute_loss(self.out_locs, self.out_confs, self.target_locs, self.target_confs)
+        # self.loss += tf.losses.get_regularization_loss()  # Add regularisation
+        # tf.summary.scalar('Loss', self.loss)
+        #
+        # # ==================================================================================
+        # self.extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # with tf.control_dependencies(self.extra_update_ops):
+        #     self.train = tf.train.AdamOptimizer(self.lr, epsilon=0.1).minimize(self.loss)
+        #     self.train = tf.train.MomentumOptimizer(self.lr, momentum=0.9, use_nesterov=True).minimize(self.loss)
+        #
+        # # ==================================================================================
+        # # TODO
+        # optimizer = tf.train.AdamOptimizer(self.lr, epsilon=0.1)
+        # minimize_op = optimizer.minimize(self.loss)
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # self.train_op = tf.group(minimize_op, update_ops)
+        #
+        # self.merged = tf.summary.merge_all()
