@@ -128,8 +128,6 @@ def test_iter(imgs):
     pred_confs, pred_locs = sess.run([p_confs, out_locs], feed_dict=feed_dict)
     return pred_confs, pred_locs
 
-# def save_ckpt(save_path, save_name):
-
 
 if __name__ == '__main__':
     multiprocessing.set_start_method('spawn')
@@ -160,7 +158,7 @@ if __name__ == '__main__':
     USE_AUG_TF = True
     if USE_AUG_TF and USE_MP:
         raise ValueError("Can't use TF augmenter with multiprocessing")
-    # NOTE: SSD variances are set in the anchors.py file
+
     boxes_vec, boxes_lst, stubs = anchors.get_boxes(CONFIG, normalised=USE_NORM)
     tf.reset_default_graph()
 
@@ -195,9 +193,9 @@ if __name__ == '__main__':
             else:
                 svc_train = data.DataService(train_data, aug_params, data_train_dir, (IM_S, IM_S), None, normalised=USE_NORM)
         print('Building model...')
-        # fb_model = FaceBox(sess, (BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
         fb_model = FaceBox((BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
 
+        # ==================================================================================
         # 输入参数
         training = tf.placeholder(tf.bool, shape=[], name='training')
         inputs = tf.placeholder(tf.float32, shape=(BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), name="inputs")
@@ -208,7 +206,6 @@ if __name__ == '__main__':
 
         loss = fb_model.compute_loss(out_locs, out_confs, target_locs, target_confs)
         loss += tf.losses.get_regularization_loss()  # Add regularisation
-        # tf.summary.scalar('Loss', loss)
 
         # ==================================================================================
         # lr
@@ -226,16 +223,12 @@ if __name__ == '__main__':
         #     self.train = tf.train.MomentumOptimizer(self.lr, momentum=0.9, use_nesterov=True).minimize(self.loss)
 
         # ==================================================================================
-        # TODO
         optimizer = tf.train.AdamOptimizer(lr, epsilon=0.1)
         minimize_op = optimizer.minimize(loss)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         train_op = tf.group(minimize_op, update_ops)
 
-        # self.merged = tf.summary.merge_all()
-
         # ==================================================================================
-        # saver = tf.train.Saver(tf.global_variables(), max_to_keep=5, keep_checkpoint_every_n_hours=2)
         saver = tf.train.Saver()
         last_ckpt = tf.train.latest_checkpoint(save_path)
 
