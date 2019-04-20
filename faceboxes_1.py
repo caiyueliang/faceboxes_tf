@@ -110,11 +110,12 @@ def train_iter(anchors_vec, loss, imgs, lbls, normalised=False):
         target_confs: confs
     }
 
-    pred_confs, pred_locs,  _, loss_value, iter = sess.run(fetches=[p_confs, out_locs, train_op, loss, global_iter_val], feed_dict=feed_dict)
+    pred_confs, pred_locs,  _, loss_value, iter = sess.run(
+        fetches=[p_confs, out_locs, train_op, loss, global_iter_val], feed_dict=feed_dict)
 
     pred_boxes = anchors.decode_batch(anchors_vec, pred_locs, pred_confs)
     mAP = anchors.compute_mAP(imgs, lbls, pred_boxes, normalised=normalised)
-    print('Iter:', iter[0], 'LR:', iter[1], 'Loss:', loss_value, 'mAP:', mAP, 'Max:', np.max(pred_locs), 'Min:', np.min(pred_locs))
+    print('LR:', iter[1], 'Loss:', loss_value, 'mAP:', mAP, 'Max:', np.max(pred_locs), 'Min:', np.min(pred_locs))
     return pred_confs, pred_locs, loss_value, mAP
 
 
