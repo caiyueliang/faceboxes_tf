@@ -5,7 +5,7 @@ import anchors
 
 class FaceBox(object):
     def __init__(self, sess, input_shape, anchors_in, normalised=False, anchors_scale=anchors.SCALE_FACTOR):
-        # self.sess = sess
+        self.sess = sess
         self.input_shape = input_shape
         self.batch_size = input_shape[0]
         self.base_init = tf.contrib.layers.xavier_initializer()             # Initialise weights

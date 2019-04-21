@@ -108,7 +108,7 @@ if __name__ == '__main__':
     save_path = './models/'
     model_name = 'faceboxes.ckpt'
     PRINT_FREQ = 500
-    TEST_FREQ = 20
+    TEST_FREQ = 1000
     SAVE_FREQ = 1000
     BATCH_SIZE = 32
     IM_S = 1024
