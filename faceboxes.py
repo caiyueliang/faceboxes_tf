@@ -8,7 +8,6 @@ import pickle
 import data
 import multiprocessing
 import augmenter
-import tf_transfor
 from tensorflow.python.framework import graph_util
 from tensorflow.python.platform import gfile
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
@@ -231,13 +230,9 @@ if __name__ == '__main__':
                 test_mAP_pred = []
             # if i % SAVE_FREQ == 0:
                 print('Saving model...')
-                # saver.save(sess, os.path.join(save_path, model_name), global_step=i)
+                saver.save(sess, os.path.join(save_path, model_name), global_step=i)
                 # save_pb(sess, save_path)
                 # save_pbtxt(sess, save_path)
-                tf_transfor.sess_to_tflite(sess=sess,
-                                           save_name=os.path.join(save_path, 'faceboxes.tflite'),
-                                           inputs=['inputs'],
-                                           outputs=['out_locs', 'out_confs'])
                 # save_tflite(sess, save_path)
 
 
