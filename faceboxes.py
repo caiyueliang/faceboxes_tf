@@ -8,6 +8,7 @@ import pickle
 import data
 import multiprocessing
 import augmenter
+import tf_transfor
 from tensorflow.python.framework import graph_util
 from tensorflow.python.platform import gfile
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     save_path = './models/'
     model_name = 'faceboxes.ckpt'
     PRINT_FREQ = 500
-    TEST_FREQ = 1000
+    TEST_FREQ = 10
     SAVE_FREQ = 1000
     BATCH_SIZE = 32
     IM_S = 1024
@@ -165,6 +166,12 @@ if __name__ == '__main__':
         fb_model = FaceBox(sess, (BATCH_SIZE, IM_S, IM_S, IM_CHANNELS), boxes_vec, normalised=USE_NORM)
         print('Num params: ', count_number_trainable_params())
         print('Attempting to find a save file...')
+
+        print("=========================================")
+        tensor_name_list = [tensor.name for tensor in tf.get_default_graph().as_graph_def().node]
+        for tensor_name in tensor_name_list:
+            print(tensor_name)
+        print("=========================================")
 
         # saver = tf.train.Saver(tf.global_variables(), max_to_keep=5, keep_checkpoint_every_n_hours=2)
         # TODO
@@ -224,9 +231,13 @@ if __name__ == '__main__':
                 test_mAP_pred = []
             # if i % SAVE_FREQ == 0:
                 print('Saving model...')
-                saver.save(sess, os.path.join(save_path, model_name), global_step=i)
-                save_pb(sess, save_path)
-                save_pbtxt(sess, save_path)
+                # saver.save(sess, os.path.join(save_path, model_name), global_step=i)
+                # save_pb(sess, save_path)
+                # save_pbtxt(sess, save_path)
+                tf_transfor.sess_to_tflite(sess=sess,
+                                           save_name=os.path.join(save_path, 'faceboxes.tflite'),
+                                           inputs=['inputs'],
+                                           outputs=['out_locs', 'out_confs'])
                 # save_tflite(sess, save_path)
 
 

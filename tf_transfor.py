@@ -14,12 +14,14 @@ def frozen_graph_to_tflite():
     open("./models/faceboxes.tflite", "wb").write(tflite_model)
 
 
-def save_tflite():
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        converter = tf.lite.TFLiteConverter.from_session(sess, ['inputs'], ['out_locs', 'out_confs'])
+# 用tf.Session，将GraphDef转换成TensorFlow Lite (float)
+def sess_to_tflite(sess, save_name, inputs=['inputs'], outputs=['out_locs', 'out_confs']):
+        # converter = tf.contrib.lite.TFLiteConverter.from_session(sess, inputs, outputs)
+        converter = tf.contrib.lite.TocoConverter.from_session(sess, inputs, outputs)
+        # converter = tf.contrib.lite.toco_convert.from_session(sess, inputs, outputs)
+
         tflite_model = converter.convert()
-        open("converted_model.tflite", "wb").write(tflite_model)
+        open(save_name, "wb").write(tflite_model)
 
 
 def save_pbtxt(save_path, save_name='graph.pbtxt', output_node_names=['inputs', 'out_locs', 'out_confs']):
